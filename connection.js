@@ -1,3 +1,8 @@
+import { createLibp2p } from 'libp2p';
+import { tcp } from '@libp2p/tcp';
+import { noise } from '@chainsafe/libp2p-noise';
+import { mplex } from '@libp2p/mplex';
+import { circuitRelayServer } from '@libp2p/circuit-relay-v2';
 import { EventEmitter } from 'events';
 import createDebug from 'debug';
 import { initPeers } from './lib/peers.js';
@@ -67,6 +72,24 @@ export async function createHsync(config) {
     hsyncSecret = result.secret;
     dynamicTimeout = result.timeout;
   }
+
+  const libp2pServer = await createLibp2p({
+    addresses: {
+      listen: ['/ip4/0.0.0.0/tcp/0'],
+    },
+    transports: [tcp()],
+    connectionEncryption: [noise()],
+    streamMuxers: [mplex()],
+    relay: circuitRelayServer(),
+    services: {
+      relay: circuitRelayServer({
+        reservations: {
+          maxReservations: 100, // Number of client slots
+          reservationTtl: 300000, // Time-to-live for a slot
+        },
+      }),
+    },
+  });
 
   const hsyncClient = {
     setNet,
@@ -206,7 +229,11 @@ export async function createHsync(config) {
       // Security: Validate authentication token before processing any RPC request
       // CVE-HSYNC-2026-003: Previously, myAuth was sent but never verified
       if (peer.myAuth !== myAuth) {
-        debug('peerRpc auth failed', requestInfo.fromHost, myAuth ? 'invalid token' : 'missing token');
+        debug(
+          'peerRpc auth failed',
+          requestInfo.fromHost,
+          myAuth ? 'invalid token' : 'missing token'
+        );
         const authError = new Error('RPC authentication failed: invalid or missing auth token');
         authError.code = 401;
         throw authError;
@@ -313,6 +340,16 @@ export async function createHsync(config) {
         debug('relaying inbound', rip, 'to', rth, rtp);
       }
     });
+  }
+
+  if (config.p2pMode == true) {
+    await libp2pServer.start();
+    debug(
+      'libp2p server started with addresses:',
+      libp2pServer.getMultiaddrs().map((addr) => addr.toString())
+    );
+    hsyncClient.libp2pServer = libp2pServer;
+    console.log('Libp2p server is running in P2P mode. Peer ID:', libp2pServer.peerId.toString());
   }
 
   return hsyncClient;

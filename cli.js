@@ -72,6 +72,9 @@ program
   )
   .addOption(
     new Option('-x, --shell', 'shell to localhost and --port for piping data to a listener')
+  )
+  .addOption(
+    new Option('-p2p, --p2p-mode', 'enable p2p mode (experimental)').env('HSYNC_P2P_MODE')
   );
 
 program.parse();
