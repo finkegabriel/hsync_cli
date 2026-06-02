@@ -10,7 +10,6 @@ const baseConfig = {
   keepalive: parseInt(env.HSYNC_KEEP_ALIVE) || 300,
   dynamicHost: env.HSYNC_DYNAMIC_HOST,
   defaultDynamicHost: 'https://demo.hsync.tech',
-  p2pMode: env.HSYNC_P2P_MODE === 'true' || env.HSYNC_P2P_MODE === '1',
   another: 'another',
 };
 
@@ -30,7 +29,6 @@ keys.forEach((k) => {
         hsyncBase: env['HSYNC_BASE_' + name] || baseConfig.hsyncBase,
         keepalive: parseInt(env['HSYNC_KEEP_ALIVE_' + name]) || baseConfig.keepalive,
         dynamicHost: env['HSYNC_DYNAMIC_HOST_' + name],
-        p2pMode: env['HSYNC_P2P_MODE_' + name] === 'true' || env['HSYNC_P2P_MODE_' + name] === '1',
       });
     }
   }
